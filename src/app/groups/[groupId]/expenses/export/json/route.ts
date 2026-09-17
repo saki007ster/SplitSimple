@@ -1,3 +1,4 @@
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { create as contentDisposition } from 'content-disposition'
 import { NextResponse } from 'next/server'
@@ -7,6 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ groupId: string }> },
 ) {
   const { groupId } = await params
+  const session = await auth.api.getSession({ headers: req.headers })
+  if (!session)
+    return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId: session.user.id } },
+  })
+  if (!membership)
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     select: {

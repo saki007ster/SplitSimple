@@ -20,6 +20,26 @@ const envSchema = z
   .object({
     POSTGRES_URL_NON_POOLING: z.string().url(),
     POSTGRES_PRISMA_URL: z.string().url(),
+    BETTER_AUTH_SECRET: z.preprocess(
+      interpretBlankEnvVarAsUndefined,
+      z.string().min(32).optional(),
+    ),
+    BETTER_AUTH_URL: z.preprocess(
+      interpretBlankEnvVarAsUndefined,
+      z.string().url().optional(),
+    ),
+    SENTRY_DSN: z.preprocess(
+      interpretBlankEnvVarAsUndefined,
+      z.string().url().optional(),
+    ),
+    NEXT_PUBLIC_SENTRY_DSN: z.preprocess(
+      interpretBlankEnvVarAsUndefined,
+      z.string().url().optional(),
+    ),
+    SUPPORT_EMAIL: z.preprocess(
+      interpretBlankEnvVarAsUndefined,
+      z.string().email().optional(),
+    ),
     // Runtime override for the public base URL, so a prebuilt image can be
     // told where it is reachable without a rebuild. Takes precedence over
     // NEXT_PUBLIC_BASE_URL, which is baked in at build time.
@@ -125,6 +145,13 @@ const envSchema = z
     ),
   })
   .superRefine((env, ctx) => {
+    if (process.env.NODE_ENV === 'production' && !env.BETTER_AUTH_SECRET) {
+      ctx.addIssue({
+        code: ZodIssueCode.custom,
+        path: ['BETTER_AUTH_SECRET'],
+        message: 'BETTER_AUTH_SECRET is required in production',
+      })
+    }
     // Either spelling enables the feature, so either has to satisfy the
     // dependency checks below.
     const enableExpenseDocuments =
@@ -170,4 +197,5 @@ export const env = envSchema.parse(process.env)
 
 // The base URL to use everywhere: the runtime override when set, otherwise the
 // value baked in at build time.
-export const effectiveBaseUrl = env.BASE_URL ?? env.NEXT_PUBLIC_BASE_URL
+export const effectiveBaseUrl =
+  env.BASE_URL ?? env.BETTER_AUTH_URL ?? env.NEXT_PUBLIC_BASE_URL

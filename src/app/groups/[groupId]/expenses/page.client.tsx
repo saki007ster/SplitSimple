@@ -24,7 +24,8 @@ export default function GroupExpensesPageClient({
   enableReceiptExtract: boolean
 }) {
   const t = useTranslations('Expenses')
-  const { groupId } = useCurrentGroup()
+  const { groupId, accessRole } = useCurrentGroup()
+  const canEdit = accessRole === 'OWNER' || accessRole === 'EDITOR'
 
   return (
     <>
@@ -37,15 +38,17 @@ export default function GroupExpensesPageClient({
           </CardHeader>
           <CardHeader className="flex flex-row gap-2 space-y-0 p-4 sm:p-6">
             <ExportButton groupId={groupId} />
-            {enableReceiptExtract && <CreateFromReceiptButton />}
-            <Button asChild size="icon" className="rounded-xl">
-              <Link
-                href={`/groups/${groupId}/expenses/create`}
-                title={t('create')}
-              >
-                <Plus className="w-4 h-4" />
-              </Link>
-            </Button>
+            {canEdit && enableReceiptExtract && <CreateFromReceiptButton />}
+            {canEdit && (
+              <Button asChild size="icon" className="rounded-xl">
+                <Link
+                  href={`/groups/${groupId}/expenses/create`}
+                  title={t('create')}
+                >
+                  <Plus className="w-4 h-4" />
+                </Link>
+              </Button>
+            )}
           </CardHeader>
         </div>
 

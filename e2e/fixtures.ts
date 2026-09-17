@@ -44,6 +44,24 @@ export const test = base.extend<Options>({
       await page
         .context()
         .addCookies([{ name: 'NEXT_LOCALE', value: 'en-US', url: baseURL }])
+
+      const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const response = await page.request.post(
+        `${baseURL}/api/auth/sign-up/email`,
+        {
+          headers: { Origin: baseURL },
+          data: {
+            name: 'E2E User',
+            email: `e2e-${suffix}@example.test`,
+            password: 'e2e-password-12345',
+          },
+        },
+      )
+      if (!response.ok()) {
+        throw new Error(
+          `Could not create E2E account: ${response.status()} ${await response.text()}`,
+        )
+      }
     }
 
     if (seedActiveUser) {

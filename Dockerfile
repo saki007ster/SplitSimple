@@ -26,6 +26,11 @@ RUN apk add --no-cache openssl && \
 COPY ./src ./src
 COPY ./messages ./messages
 
+# Browser-side monitoring configuration is compiled into the JavaScript
+# bundle. Supply this as a Docker build argument when Sentry is enabled.
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
+
 # Prisma 7 generates the client into ./src/generated/prisma instead of
 # node_modules, so this has to run after the source tree is in place.
 RUN npx prisma generate

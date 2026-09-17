@@ -1,5 +1,4 @@
 'use client'
-import { AddGroupByUrlButton } from '@/app/groups/add-group-by-url-button'
 import {
   RecentGroups,
   getArchivedGroups,
@@ -155,15 +154,24 @@ function RecentGroupList_({
     )
   }
 
+  const accountGroups = data.groups.map(({ id, name }) => ({ id, name }))
+  const accountGroupIds = new Set(accountGroups.map(({ id }) => id))
+  const displayGroups = [
+    ...groups.filter(({ id }) => accountGroupIds.has(id)),
+    ...accountGroups.filter(
+      ({ id }) => !groups.some((group) => group.id === id),
+    ),
+  ]
+
   const { starredGroupInfo, groupInfo, archivedGroupInfo } = sortGroups({
-    groups,
+    groups: displayGroups,
     starredGroups,
     archivedGroups,
   })
 
   return (
     <GroupsPage reload={refreshGroupsFromStorage}>
-      <GlobalBalanceCard groups={groups} />
+      <GlobalBalanceCard groups={displayGroups} />
 
       {starredGroupInfo.length > 0 && (
         <>
@@ -261,7 +269,6 @@ function GroupsPage({
           </h1>
         </div>
         <div className="flex gap-2">
-          <AddGroupByUrlButton reload={reload} />
           <Button asChild>
             <Link href="/groups/create">
               {/* <Plus className="w-4 h-4 mr-2" /> */}

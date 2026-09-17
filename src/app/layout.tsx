@@ -1,4 +1,5 @@
 import { ApplePwaSplash } from '@/app/apple-pwa-splash'
+import { AuthMenu } from '@/components/auth-menu'
 import { BrandLogo } from '@/components/brand-logo'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { ProgressBar } from '@/components/progress-bar'
@@ -89,6 +90,9 @@ function Content({ children }: { children: React.ReactNode }) {
               <li>
                 <ThemeToggle />
               </li>
+              <li>
+                <AuthMenu />
+              </li>
             </ul>
           </div>
         </div>
@@ -101,7 +105,11 @@ function Content({ children }: { children: React.ReactNode }) {
           <Link href="/" aria-label="SplitSimple home">
             <BrandLogo />
           </Link>
-          <p>Made for shared moments, not shared spreadsheets.</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <p>Made for shared moments, not shared spreadsheets.</p>
+          </div>
         </div>
       </footer>
       <Toaster />

@@ -12,6 +12,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Fragment } from 'react'
+import { useCurrentGroup } from '../current-group-context'
 
 type Expense = Awaited<ReturnType<typeof getGroupExpenses>>[number]
 
@@ -59,6 +60,8 @@ export function ExpenseCard({
   participantCount,
 }: Props) {
   const router = useRouter()
+  const { accessRole } = useCurrentGroup()
+  const canEdit = accessRole === 'OWNER' || accessRole === 'EDITOR'
   const locale = useLocale() as Locale
 
   const originalAmount =
@@ -78,11 +81,13 @@ export function ExpenseCard({
       data-testid="expense-card"
       data-expense-id={expense.id}
       className={cn(
-        'flex justify-between sm:mx-6 px-4 sm:rounded-lg sm:pr-2 sm:pl-4 py-4 text-sm cursor-pointer hover:bg-accent gap-1 items-stretch',
+        'flex justify-between sm:mx-6 px-4 sm:rounded-lg sm:pr-2 sm:pl-4 py-4 text-sm gap-1 items-stretch',
+        canEdit && 'cursor-pointer hover:bg-accent',
         expense.isReimbursement && 'italic',
       )}
       onClick={() => {
-        router.push(`/groups/${groupId}/expenses/${expense.id}/edit`)
+        if (canEdit)
+          router.push(`/groups/${groupId}/expenses/${expense.id}/edit`)
       }}
     >
       <CategoryIcon
@@ -121,16 +126,18 @@ export function ExpenseCard({
           {formatDateOnly(expense.expenseDate, locale, { dateStyle: 'medium' })}
         </div>
       </div>
-      <Button
-        size="icon"
-        variant="link"
-        className="self-center hidden sm:flex"
-        asChild
-      >
-        <Link href={`/groups/${groupId}/expenses/${expense.id}/edit`}>
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </Button>
+      {canEdit && (
+        <Button
+          size="icon"
+          variant="link"
+          className="self-center hidden sm:flex"
+          asChild
+        >
+          <Link href={`/groups/${groupId}/expenses/${expense.id}/edit`}>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </Button>
+      )}
     </div>
   )
 }

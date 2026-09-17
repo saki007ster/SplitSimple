@@ -27,6 +27,7 @@
 import { Client } from 'pg'
 import {
   SEARCH_TOKEN,
+  baseUrl,
   config,
   expenseCountFor,
   expenseId,
@@ -34,6 +35,7 @@ import {
   paidForCountFor,
   participantCountFor,
   participantId,
+  perfUser,
   seedDatabaseUrl,
 } from './config'
 import { makeRandom } from './random'
@@ -143,6 +145,17 @@ async function insertRows(
 }
 
 async function main() {
+  const signup = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: baseUrl },
+    body: JSON.stringify(perfUser),
+  })
+  if (!signup.ok && signup.status >= 500) {
+    throw new Error(
+      `Could not create performance user: ${signup.status} ${await signup.text()}`,
+    )
+  }
+
   const client = new Client({ connectionString: seedDatabaseUrl })
   await client.connect()
 
@@ -160,6 +173,12 @@ async function main() {
     const { rows: categories } = await client.query<{ id: number }>(
       'SELECT id FROM "Category" ORDER BY id ASC',
     )
+    const { rows: users } = await client.query<{ id: string }>(
+      'SELECT "id" FROM "User" WHERE "email" = $1',
+      [perfUser.email],
+    )
+    const userId = users[0]?.id
+    if (!userId) throw new Error('Performance account was not created.')
     if (categories.length === 0) {
       throw new Error(
         'No categories found. The database is missing its migrations -- run `prisma migrate deploy` first.',
@@ -188,6 +207,14 @@ async function main() {
             toTimestamp(EPOCH),
           ],
         ],
+      )
+
+      await insertRows(
+        client,
+        'GroupMember',
+        ['id', 'groupId', 'userId', 'role'],
+        [[`perf-member-${pad(g, 2)}`, groupId(g), userId, 'OWNER']],
+        { 3: '"GroupRole"' },
       )
 
       await insertRows(

@@ -63,6 +63,12 @@ export const seedDatabaseUrl =
   process.env['PERF_DATABASE_URL'] ??
   `postgresql://postgres:perf@localhost:${process.env['PERF_DB_PORT'] ?? '55432'}/splitsimple_perf`
 
+export const perfUser = {
+  email: 'performance@splitsimple.test',
+  password: 'performance-password-12345',
+  name: 'Performance User',
+} as const
+
 export const groupId = (index: number) =>
   `perf-group-${String(index).padStart(2, '0')}`
 

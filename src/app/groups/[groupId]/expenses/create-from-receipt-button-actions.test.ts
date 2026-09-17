@@ -29,6 +29,18 @@ jest.mock('../../../../lib/api', () => ({
 jest.mock('../../../../lib/uploaded-image-url', () => ({
   isAllowedUploadUrl: (url: string) => url.startsWith('https://uploads.test/'),
 }))
+jest.mock('../../../../lib/auth', () => ({
+  auth: { api: { getSession: async () => ({ user: { id: 'test-user' } }) } },
+}))
+jest.mock('../../../../lib/access', () => ({
+  requireGroupRole: async () => ({ role: 'EDITOR' }),
+}))
+jest.mock('../../../../lib/rate-limit', () => ({
+  enforceRateLimit: async () => undefined,
+}))
+jest.mock('next/headers', () => ({
+  headers: async () => new Headers(),
+}))
 
 import { extractExpenseInformationFromImage } from './create-from-receipt-button-actions'
 

@@ -27,6 +27,8 @@ services:
     environment:
       POSTGRES_PRISMA_URL: postgresql://postgres:perf@db:5432/splitsimple_perf
       POSTGRES_URL_NON_POOLING: postgresql://postgres:perf@db:5432/splitsimple_perf
+      BETTER_AUTH_SECRET: perf-only-authentication-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:${PERF_HOST_PORT:-3100}
       NEXT_TELEMETRY_DISABLED: '1'
       # Turns on the query counter in src/lib/perf-instrumentation.ts. Nothing
       # else in the repository sets this. Read at runtime, not baked into the

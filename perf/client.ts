@@ -15,7 +15,7 @@
 import type { AppRouter } from '@/trpc/routers/_app'
 import { createTRPCClient, httpBatchLink, httpLink } from '@trpc/client'
 import superjson from 'superjson'
-import { baseUrl } from './config'
+import { baseUrl, perfUser } from './config'
 
 /**
  * The server tags `Prisma.Decimal` values as `decimal.js` (src/trpc/init.ts),
@@ -55,9 +55,45 @@ export type Recording = {
 }
 
 let current: Recording | null = null
+let authCookie: string | null = null
+
+export async function authenticate(): Promise<void> {
+  const response = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: baseUrl },
+    body: JSON.stringify({
+      email: perfUser.email,
+      password: perfUser.password,
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(
+      `Performance sign-in failed: ${response.status} ${await response.text()}`,
+    )
+  }
+  const getSetCookie = (
+    response.headers as Headers & { getSetCookie?: () => string[] }
+  ).getSetCookie
+  const setCookies = getSetCookie
+    ? getSetCookie.call(response.headers)
+    : [response.headers.get('set-cookie') ?? '']
+  authCookie = setCookies
+    .map((cookie) => cookie.split(';', 1)[0])
+    .filter(Boolean)
+    .join('; ')
+  if (!authCookie)
+    throw new Error('Performance sign-in returned no session cookie.')
+}
 
 const recordingFetch: typeof fetch = async (input, init) => {
-  const response = await fetch(input as RequestInfo, init as RequestInit)
+  if (!authCookie)
+    throw new Error('Call authenticate() before running scenarios.')
+  const headers = new Headers(init?.headers)
+  headers.set('cookie', authCookie)
+  const response = await fetch(
+    input as RequestInfo,
+    { ...init, headers } as RequestInit,
+  )
   if (!current) return response
 
   // Read a clone so the body stays consumable by tRPC itself.

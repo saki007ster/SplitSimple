@@ -1,9 +1,9 @@
 import { createExpense } from '@/lib/api'
 import { expenseFormSchema } from '@/lib/schemas'
-import { baseProcedure } from '@/trpc/init'
+import { groupWriteProcedure } from '@/trpc/init'
 import { z } from 'zod'
 
-export const createGroupExpenseProcedure = baseProcedure
+export const createGroupExpenseProcedure = groupWriteProcedure
   .input(
     z.object({
       groupId: z.string().min(1),

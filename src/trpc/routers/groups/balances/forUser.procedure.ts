@@ -1,7 +1,8 @@
 import { getGroup, getGroupExpenses } from '@/lib/api'
 import { getBalances } from '@/lib/balances'
 import { MAX_GROUPS_PER_QUERY } from '@/lib/group-query-limits'
-import { baseProcedure } from '@/trpc/init'
+import { prisma } from '@/lib/prisma'
+import { protectedProcedure } from '@/trpc/init'
 import { z } from 'zod'
 
 /**
@@ -12,7 +13,7 @@ import { z } from 'zod'
  * and receives the participant's net balance in each group, together with the
  * group's currency so the client can group amounts by currency.
  */
-export const forUserBalancesProcedure = baseProcedure
+export const forUserBalancesProcedure = protectedProcedure
   .input(
     z.object({
       groups: z
@@ -25,30 +26,40 @@ export const forUserBalancesProcedure = baseProcedure
         .max(MAX_GROUPS_PER_QUERY),
     }),
   )
-  .query(async ({ input: { groups } }) => {
+  .query(async ({ input: { groups }, ctx }) => {
+    const memberships = await prisma.groupMember.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        groupId: { in: groups.map(({ groupId }) => groupId) },
+      },
+      select: { groupId: true },
+    })
+    const allowed = new Set(memberships.map(({ groupId }) => groupId))
     const balances = await Promise.all(
-      groups.map(async ({ groupId, participantId }) => {
-        const group = await getGroup(groupId)
-        if (!group) return null
+      groups
+        .filter(({ groupId }) => allowed.has(groupId))
+        .map(async ({ groupId, participantId }) => {
+          const group = await getGroup(groupId)
+          if (!group) return null
 
-        const participant = group.participants.find(
-          (p) => p.id === participantId,
-        )
-        if (!participant) return null
+          const participant = group.participants.find(
+            (p) => p.id === participantId,
+          )
+          if (!participant) return null
 
-        const expenses = await getGroupExpenses(groupId)
-        const amount = getBalances(expenses)[participantId]?.total ?? 0
+          const expenses = await getGroupExpenses(groupId)
+          const amount = getBalances(expenses)[participantId]?.total ?? 0
 
-        return {
-          groupId,
-          groupName: group.name,
-          currency: group.currency,
-          currencyCode: group.currencyCode,
-          participantId,
-          participantName: participant.name,
-          amount,
-        }
-      }),
+          return {
+            groupId,
+            groupName: group.name,
+            currency: group.currency,
+            currencyCode: group.currencyCode,
+            participantId,
+            participantName: participant.name,
+            amount,
+          }
+        }),
     )
 
     return { balances: balances.filter((balance) => balance !== null) }

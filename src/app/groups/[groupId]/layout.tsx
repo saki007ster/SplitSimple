@@ -1,5 +1,7 @@
-import { cached } from '@/app/cached-functions'
+import { auth } from '@/lib/auth'
 import { Metadata } from 'next'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { PropsWithChildren } from 'react'
 import { GroupLayoutClient } from './layout.client'
 
@@ -10,13 +12,12 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { groupId } = await params
-  const group = await cached.getGroup(groupId)
+  await params
 
   return {
     title: {
-      default: group?.name ?? '',
-      template: `%s · ${group?.name} · SplitSimple`,
+      default: 'Group',
+      template: `%s · SplitSimple`,
     },
   }
 }
@@ -26,5 +27,8 @@ export default async function GroupLayout({
   params,
 }: PropsWithChildren<Props>) {
   const { groupId } = await params
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session)
+    redirect(`/auth?next=${encodeURIComponent(`/groups/${groupId}`)}`)
   return <GroupLayoutClient groupId={groupId}>{children}</GroupLayoutClient>
 }

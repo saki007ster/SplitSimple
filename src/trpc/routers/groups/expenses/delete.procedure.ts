@@ -1,8 +1,8 @@
 import { deleteExpense } from '@/lib/api'
-import { baseProcedure } from '@/trpc/init'
+import { groupWriteProcedure } from '@/trpc/init'
 import { z } from 'zod'
 
-export const deleteGroupExpenseProcedure = baseProcedure
+export const deleteGroupExpenseProcedure = groupWriteProcedure
   .input(
     z.object({
       expenseId: z.string().min(1),

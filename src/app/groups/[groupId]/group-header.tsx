@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useCurrentGroup } from './current-group-context'
 
 export const GroupHeader = () => {
-  const { isLoading, groupId, group } = useCurrentGroup()
+  const { isLoading, groupId, group, accessRole } = useCurrentGroup()
 
   return (
     <div className="flex flex-col justify-between gap-4 pt-1">
@@ -22,8 +22,11 @@ export const GroupHeader = () => {
       </h1>
 
       <div className="flex items-center justify-between gap-2">
-        <GroupTabs groupId={groupId} />
-        {group && <ShareButton group={group} />}
+        <GroupTabs
+          groupId={groupId}
+          canEdit={accessRole === 'OWNER' || accessRole === 'EDITOR'}
+        />
+        {group && accessRole === 'OWNER' && <ShareButton group={group} />}
       </div>
     </div>
   )

@@ -7,7 +7,7 @@
  */
 import { writeFileSync } from 'node:fs'
 import { type Budget, budgets } from './budgets'
-import { waitForApp } from './client'
+import { authenticate, waitForApp } from './client'
 import { baseUrl, config } from './config'
 import { type StepResult, runStep } from './harness'
 import { listGroups } from './scenarios/list-groups'
@@ -135,6 +135,7 @@ async function main() {
   )
 
   await waitForApp()
+  await authenticate()
 
   const results: StepResult[] = []
   for (const step of selected) {

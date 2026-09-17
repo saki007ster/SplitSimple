@@ -119,7 +119,7 @@ function ReceiptDialogContent() {
         let { url } = await uploadToS3(file)
         console.log('Extracting information from receipt…')
         const { amount, categoryId, date, title } =
-          await extractExpenseInformationFromImage(url)
+          await extractExpenseInformationFromImage(url, groupId)
         const { width, height } = await getImageData(file)
         setReceiptInfo({ amount, categoryId, date, title, url, width, height })
       } catch (err) {

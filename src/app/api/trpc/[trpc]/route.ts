@@ -5,6 +5,7 @@ import {
 } from '@/lib/perf-instrumentation'
 import { createTRPCContext } from '@/trpc/init'
 import { appRouter } from '@/trpc/routers/_app'
+import * as Sentry from '@sentry/nextjs'
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
 
 const handleRequest = (req: Request) =>
@@ -13,6 +14,15 @@ const handleRequest = (req: Request) =>
     req,
     router: appRouter,
     createContext: createTRPCContext,
+    onError({ error, path, req }) {
+      console.error('tRPC request failed', {
+        path,
+        code: error.code,
+        message: error.message,
+        requestId: req.headers.get('x-request-id'),
+      })
+      if (error.code === 'INTERNAL_SERVER_ERROR') Sentry.captureException(error)
+    },
   })
 
 /**

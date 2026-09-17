@@ -57,28 +57,32 @@ const EXPENSE_READ_QUERIES = 2
 /** `getGroup` is a single findUnique with an include. */
 const GROUP_READ_QUERIES = 1
 
+/** Membership lookup performed by every group-scoped procedure. */
+const ACCESS_QUERY = 1
+
+/** groups.get checks membership, legacy status, then loads the group. */
+const GROUP_GET_QUERIES = 3
+
 const largeGroupParticipants = participantCountFor(LARGE_GROUP)
 
 export const budgets: Record<string, Budget> = {
   /**
-   * `groups.list` is one query for all N groups. `groups.balances.forUser` then
-   * runs `getGroup` + a full unpaged `getGroupExpenses` per group -- hence the
-   * `* config.groups`. Bringing that to a constant is the single biggest win
-   * available on this screen: at the default dataset it is 61 queries and by
-   * far the slowest step in the suite.
+   * `groups.list` resolves memberships, legacy candidates, and group details.
+   * `groups.balances.forUser` checks membership once, then runs `getGroup` plus
+   * a full unpaged `getGroupExpenses` per group -- hence `4 + 3N`.
    */
   'list-groups:home': {
     requests: 1,
     bytes: 120 + config.groups * 360,
     rows: config.groups * 2,
-    dbQueries: 1 + config.groups * (GROUP_READ_QUERIES + EXPENSE_READ_QUERIES),
+    dbQueries: 4 + config.groups * (GROUP_READ_QUERIES + EXPENSE_READ_QUERIES),
   },
 
   'view-group:first-page': {
     requests: 1,
     bytes: 1_500 + config.pageSize * 1_340,
     rows: largeGroupParticipants + config.pageSize,
-    dbQueries: GROUP_READ_QUERIES + EXPENSE_READ_QUERIES,
+    dbQueries: GROUP_GET_QUERIES + ACCESS_QUERY + EXPENSE_READ_QUERIES,
   },
 
   /**
@@ -91,7 +95,7 @@ export const budgets: Record<string, Budget> = {
     requests: 1,
     bytes: config.pageSize * 1_340,
     rows: config.pageSize,
-    dbQueries: EXPENSE_READ_QUERIES,
+    dbQueries: ACCESS_QUERY + EXPENSE_READ_QUERIES,
   },
 
   'view-group:search': {
@@ -99,7 +103,7 @@ export const budgets: Record<string, Budget> = {
     bytes: config.pageSize * 1_340,
     // A full page, unless the dataset is small enough that fewer expenses match.
     rows: Math.min(config.pageSize, searchMatchCount),
-    dbQueries: EXPENSE_READ_QUERIES,
+    dbQueries: ACCESS_QUERY + EXPENSE_READ_QUERIES,
   },
 
   /**
@@ -116,14 +120,13 @@ export const budgets: Record<string, Budget> = {
   'view-group:balances': {
     requests: 1,
     bytes: largeGroupParticipants * 140,
-    dbQueries: EXPENSE_READ_QUERIES,
+    dbQueries: ACCESS_QUERY + EXPENSE_READ_QUERIES,
   },
 
   /**
    * Three procedures, one batched request: `groups.get`, `categories.list` and
-   * `groups.expenses.get`. One query each. Most of the payload is the static
-   * category table rather than the expense itself, which is why the fixed term
-   * dominates.
+   * `groups.expenses.get`. Group reads also enforce membership. Most of the
+   * payload is the static category table, so the fixed byte term dominates.
    */
   'view-expense:edit-form': {
     requests: 1,
@@ -133,6 +136,6 @@ export const budgets: Record<string, Budget> = {
       paidForCountFor(LARGE_GROUP, targetExpenseIndex) * 40,
     rows:
       largeGroupParticipants + paidForCountFor(LARGE_GROUP, targetExpenseIndex),
-    dbQueries: GROUP_READ_QUERIES + 1 + 1,
+    dbQueries: GROUP_GET_QUERIES + 1 + ACCESS_QUERY + 1,
   },
 }

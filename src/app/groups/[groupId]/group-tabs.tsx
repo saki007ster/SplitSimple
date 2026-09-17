@@ -7,9 +7,10 @@ import { ComponentType } from 'react'
 
 type Props = {
   groupId: string
+  canEdit: boolean
 }
 
-export function GroupTabs({ groupId }: Props) {
+export function GroupTabs({ groupId, canEdit }: Props) {
   const t = useTranslations()
   const pathname = usePathname()
   const value =
@@ -20,7 +21,9 @@ export function GroupTabs({ groupId }: Props) {
     { value: 'expenses', label: t('Expenses.title'), Icon: Receipt },
     { value: 'balances', label: t('Balances.title'), Icon: Scale },
     { value: 'information', label: t('Information.title'), Icon: Info },
-    { value: 'edit', label: t('Settings.title'), Icon: Settings },
+    ...(canEdit
+      ? [{ value: 'edit', label: t('Settings.title'), Icon: Settings }]
+      : []),
   ]
 
   return (

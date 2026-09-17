@@ -11,7 +11,10 @@ import { ExpenseFormValues, GroupFormValues } from '@/lib/schemas'
 // Re-exported for backwards compatibility with existing server-side importers.
 export { randomId }
 
-export async function createGroup(groupFormValues: GroupFormValues) {
+export async function createGroup(
+  groupFormValues: GroupFormValues,
+  ownerId: string,
+) {
   return prisma.group.create({
     data: {
       id: randomId(),
@@ -26,6 +29,9 @@ export async function createGroup(groupFormValues: GroupFormValues) {
             name,
           })),
         },
+      },
+      members: {
+        create: { id: randomId(), userId: ownerId, role: 'OWNER' },
       },
     },
     include: { participants: true },
@@ -117,6 +123,7 @@ export async function deleteExpense(
   participantId?: string,
 ) {
   const existingExpense = await getExpense(groupId, expenseId)
+  if (!existingExpense) throw new Error('Invalid expense ID')
   await logActivity(groupId, ActivityType.DELETE_EXPENSE, {
     participantId,
     expenseId,
@@ -353,7 +360,7 @@ export async function getGroupExpenses(
   groupId: string,
   options?: { offset?: number; length?: number; filter?: string },
 ) {
-  await createRecurringExpenses()
+  await createRecurringExpenses(groupId)
 
   return prisma.expense.findMany({
     select: {
@@ -403,7 +410,7 @@ export async function getGroupExpenseCount(groupId: string) {
  * stats (#508).
  */
 export async function getActiveRecurringExpenses(groupId: string) {
-  await createRecurringExpenses()
+  await createRecurringExpenses(groupId)
 
   return prisma.expense.findMany({
     select: {
@@ -425,8 +432,8 @@ export async function getActiveRecurringExpenses(groupId: string) {
 }
 
 export async function getExpense(groupId: string, expenseId: string) {
-  return prisma.expense.findUnique({
-    where: { id: expenseId },
+  return prisma.expense.findFirst({
+    where: { id: expenseId, groupId },
     include: {
       paidBy: true,
       paidFor: true,
@@ -482,7 +489,7 @@ export async function logActivity(
   })
 }
 
-async function createRecurringExpenses() {
+async function createRecurringExpenses(groupId: string) {
   const localDate = new Date() // Current local date
   const utcDateFromLocal = new Date(
     Date.UTC(
@@ -498,6 +505,7 @@ async function createRecurringExpenses() {
   const recurringExpenseLinksWithExpensesToCreate =
     await prisma.recurringExpenseLink.findMany({
       where: {
+        groupId,
         nextExpenseCreatedAt: null,
         nextExpenseDate: {
           lte: utcDateFromLocal,

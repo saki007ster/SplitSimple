@@ -1,10 +1,15 @@
 'use server'
+import { GroupRole } from '@/generated/prisma/client'
+import { requireGroupRole } from '@/lib/access'
 import { getCategories } from '@/lib/api'
+import { auth } from '@/lib/auth'
 import { env } from '@/lib/env'
 import { getRuntimeFeatureFlags } from '@/lib/featureFlags'
 import { getOpenAIClient } from '@/lib/openai'
+import { enforceRateLimit } from '@/lib/rate-limit'
 import { isAllowedUploadUrl } from '@/lib/uploaded-image-url'
 import { formatCategoryForAIPrompt } from '@/lib/utils'
+import { headers } from 'next/headers'
 import { z } from 'zod'
 
 // The model is contractually bound to this shape by `strict: true` below, but
@@ -17,7 +22,10 @@ const receiptResponseSchema = z.object({
   title: z.string(),
 })
 
-export async function extractExpenseInformationFromImage(imageUrl: string) {
+export async function extractExpenseInformationFromImage(
+  imageUrl: string,
+  groupId = '',
+) {
   'use server'
 
   // Enforce the feature flag server-side: the UI gate only hides the button, it
@@ -26,6 +34,14 @@ export async function extractExpenseInformationFromImage(imageUrl: string) {
   if (!enableReceiptExtract) {
     throw new Error('Receipt extraction is not enabled.')
   }
+
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) throw new Error('Please sign in.')
+  await requireGroupRole(session.user.id, groupId, GroupRole.EDITOR)
+  await enforceRateLimit(`receipt:${session.user.id}`, {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  })
 
   // Only extract from images the app itself uploaded. Without this, an arbitrary
   // caller-supplied URL is forwarded to the model, enabling SSRF-via-OpenAI and

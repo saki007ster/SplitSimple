@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs/config'
 import createNextIntlPlugin from 'next-intl/plugin'
 
 const withNextIntl = createNextIntlPlugin()
@@ -11,7 +12,7 @@ const remotePatterns = []
 // S3 Storage
 if (process.env.S3_UPLOAD_ENDPOINT) {
   // custom endpoint for providers other than AWS
-  const url = new URL(process.env.S3_UPLOAD_ENDPOINT);
+  const url = new URL(process.env.S3_UPLOAD_ENDPOINT)
   remotePatterns.push({
     hostname: url.hostname,
   })
@@ -29,7 +30,7 @@ const nextConfig = {
   // stage copies that instead of a full production `node_modules`.
   output: 'standalone',
   images: {
-    remotePatterns
+    remotePatterns,
   },
   reactCompiler: true,
   // Required to run in a codespace (see https://github.com/vercel/next.js/issues/58019)
@@ -74,4 +75,8 @@ const nextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+export default withSentryConfig(withNextIntl(nextConfig), {
+  silent: true,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  webpack: { treeshake: { removeDebugLogging: true } },
+})

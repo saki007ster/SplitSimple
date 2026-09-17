@@ -4,8 +4,18 @@ import { PropsWithChildren, createContext, useContext } from 'react'
 type Group = NonNullable<AppRouterOutput['groups']['get']['group']>
 
 type GroupContext =
-  | { isLoading: false; groupId: string; group: Group }
-  | { isLoading: true; groupId: string; group: undefined }
+  | {
+      isLoading: false
+      groupId: string
+      group: Group
+      accessRole: 'OWNER' | 'EDITOR' | 'VIEWER'
+    }
+  | {
+      isLoading: true
+      groupId: string
+      group: undefined
+      accessRole: undefined
+    }
 
 const CurrentGroupContext = createContext<GroupContext | null>(null)
 
