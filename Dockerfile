@@ -25,6 +25,7 @@ RUN apk add --no-cache openssl && \
 
 COPY ./src ./src
 COPY ./messages ./messages
+COPY ./sentry.server.config.ts ./sentry.edge.config.ts ./
 
 # Browser-side monitoring configuration is compiled into the JavaScript
 # bundle. Supply this as a Docker build argument when Sentry is enabled.
